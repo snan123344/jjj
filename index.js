@@ -32,7 +32,7 @@ const mediaMimeTypes = [
 // Define maximum upload size (default to 500 MB if not set)
 const MAX_UPLOAD_SIZE = process.env.MAX_UPLOAD_SIZE
     ? parseInt(process.env.MAX_UPLOAD_SIZE, 10)
-    : 500 * 1024 * 1024; // 500 MB
+    : 2500 * 1024 * 1024; // 2500 MB
 
 console.log(`Maximum upload size is set to ${formatBytes(MAX_UPLOAD_SIZE)}`);
 
