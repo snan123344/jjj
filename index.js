@@ -192,6 +192,7 @@ app.get('/', (req, res) => {
                 <!-- File Upload Form -->
                 <form id="fileUploadForm">
                     <h2>Upload a File</h2>
+                    <h4>Powered By MohanishX Services⚡<h4>
                     <input type="file" name="file" id="fileInput" required /><br />
                     <button type="submit">Upload File</button>
                 </form>
@@ -563,6 +564,7 @@ app.get('/watch/:filename', (req, res) => {
                 <p><strong>Size:</strong> ${formatBytes(metadata.size)}</p>
                 <p><strong>Type:</strong> ${metadata.type}</p>
                 <p><strong>Upload Time:</strong> ${metadata.uploadTime}</p>
+                <h4>Powered By MohanishX Services⚡<h4>
             </div>
 
             <script src="https://cdn.plyr.io/3.7.2/plyr.polyfilled.js"></script>
