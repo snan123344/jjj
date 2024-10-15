@@ -28,8 +28,12 @@ const mediaMimeTypes = [
     // Add more MIME types as needed
 ];
 
-// Define maximum upload size (e.g., 500 MB)
-const MAX_UPLOAD_SIZE = 500 * 1024 * 1024; // 500 MB
+// Define maximum upload size (default to 500 MB if not set)
+const MAX_UPLOAD_SIZE = process.env.MAX_UPLOAD_SIZE
+    ? parseInt(process.env.MAX_UPLOAD_SIZE, 10)
+    : 50000 * 1024 * 1024; // 500 MB
+
+console.log(`Maximum upload size is set to ${formatBytes(MAX_UPLOAD_SIZE)}`);
 
 // Create uploads directory if it doesn't exist
 const uploadDir = path.join(__dirname, 'uploads');
@@ -54,8 +58,8 @@ app.use('/uploads', (req, res, next) => {
         // If it's a media file, handle streaming with Range support
         return next();
     }
-    // For non-media files, serve statically
-    express.static(uploadDir)(req, res, next);
+    // For non-media files, serve statically using absolute path
+    express.static(path.join(__dirname, 'uploads'))(req, res, next);
 });
 
 // === Multer Configuration ===
@@ -76,8 +80,21 @@ const upload = multer({
     storage: storage,
     limits: { fileSize: MAX_UPLOAD_SIZE },
     fileFilter: (req, file, cb) => {
-        // Allow all file types initially; validation handled post-upload or in specific routes
-        cb(null, true);
+        // Define allowed MIME types
+        const allowedMimeTypes = [
+            ...mediaMimeTypes,
+            'application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'text/plain',
+            // Add more as needed
+        ];
+
+        if (allowedMimeTypes.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Error: File type not supported!'));
+        }
     }
 });
 
@@ -547,7 +564,7 @@ app.get('/watch/:filename', (req, res) => {
                 <p><strong>Type:</strong> ${metadata.type}</p>
                 <p><strong>Upload Time:</strong> ${metadata.uploadTime}</p>
             </div>
-    
+
             <script src="https://cdn.plyr.io/3.7.2/plyr.polyfilled.js"></script>
             <script>
                 const player = new Plyr('#player', {
@@ -663,7 +680,7 @@ app.use((err, req, res, next) => {
     if (err instanceof multer.MulterError) {
         // Handle Multer-specific errors
         if (err.code === 'LIMIT_FILE_SIZE') {
-            return res.status(413).json({ error: 'File is too large. Maximum size is 500MB.' });
+            return res.status(413).json({ error: `File is too large. Maximum size is ${formatBytes(MAX_UPLOAD_SIZE)}.` });
         }
         return res.status(400).json({ error: err.message });
     } else if (err) {
@@ -676,7 +693,7 @@ app.use((err, req, res, next) => {
 
 // === Start the Server ===
 
-const PORT = process.env.PORT || 8000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
