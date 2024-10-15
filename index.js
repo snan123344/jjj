@@ -31,7 +31,7 @@ const mediaMimeTypes = [
 // Define maximum upload size (default to 500 MB if not set)
 const MAX_UPLOAD_SIZE = process.env.MAX_UPLOAD_SIZE
     ? parseInt(process.env.MAX_UPLOAD_SIZE, 10)
-    : 50000 * 1024 * 1024; // 500 MB
+    : 500 * 1024 * 1024; // 500 MB
 
 console.log(`Maximum upload size is set to ${formatBytes(MAX_UPLOAD_SIZE)}`);
 
@@ -693,7 +693,7 @@ app.use((err, req, res, next) => {
 
 // === Start the Server ===
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
