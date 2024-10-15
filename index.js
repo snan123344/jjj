@@ -235,7 +235,7 @@ app.get('/', (req, res) => {
                     const i = Math.floor(Math.log(bytes) / Math.log(k));
                     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
                 }
-
+    
                 // File Upload Handling
                 const fileUploadForm = document.getElementById('fileUploadForm');
                 const fileInput = document.getElementById('fileInput');
@@ -243,24 +243,24 @@ app.get('/', (req, res) => {
                 const status = document.getElementById('status');
                 const uploadedFile = document.getElementById('uploadedFile');
                 const fileMetadata = document.getElementById('fileMetadata');
-
+    
                 fileUploadForm.addEventListener('submit', function(event) {
                     event.preventDefault(); // Prevent default form submission
-
+    
                     const file = fileInput.files[0];
                     if (!file) {
                         alert('Please select a file to upload.');
                         return;
                     }
-
+    
                     const formData = new FormData();
                     formData.append('file', file);
-
+    
                     const xhr = new XMLHttpRequest();
                     xhr.open('POST', '/upload', true);
-
+    
                     const startTime = Date.now();
-
+    
                     // Update progress bar and calculate upload speed
                     xhr.upload.onprogress = function(event) {
                         if (event.lengthComputable) {
@@ -271,7 +271,7 @@ app.get('/', (req, res) => {
                             status.innerText = `Upload Progress: ${Math.round(percentComplete)}% - Speed: ${speed.toFixed(2)} KB/s`;
                         }
                     };
-
+    
                     // Handle successful upload
                     xhr.onload = function() {
                         if (xhr.status === 200) {
@@ -281,7 +281,7 @@ app.get('/', (req, res) => {
                             } else if (response.fileUrl) {
                                 uploadedFile.innerHTML = `<a href="${response.fileUrl}" target="_blank">Download Uploaded File</a>`;
                             }
-
+    
                             // Display File Metadata
                             fileMetadata.innerHTML = `
                                 <h3>File Metadata:</h3>
@@ -290,7 +290,7 @@ app.get('/', (req, res) => {
                                 <p><strong>Type:</strong> ${file.type}</p>
                                 <p><strong>Upload Time:</strong> ${new Date().toLocaleString()}</p>
                             `;
-
+    
                             progressBar.value = 0; // Reset progress bar
                             status.innerText = 'Upload completed successfully.';
                         } else {
@@ -307,46 +307,46 @@ app.get('/', (req, res) => {
                             progressBar.value = 0;
                         }
                     };
-
+    
                     // Handle errors
                     xhr.onerror = function() {
                         status.innerText = 'Upload failed. Please try again.';
                         progressBar.value = 0;
                     };
-
+    
                     xhr.send(formData); // Send the form data to the server
                 });
-
+    
                 // URL Upload Handling
                 const urlUploadForm = document.getElementById('urlUploadForm');
                 const fileUrlInput = document.getElementById('fileUrlInput');
-
+    
                 urlUploadForm.addEventListener('submit', function(event) {
                     event.preventDefault(); // Prevent default form submission
-
+    
                     const fileUrl = fileUrlInput.value.trim();
                     if (!fileUrl) {
                         alert('Please enter a valid URL.');
                         return;
                     }
-
+    
                     const xhr = new XMLHttpRequest();
                     xhr.open('POST', '/upload-url', true);
                     xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
-
+    
                     const startTime = Date.now();
-
+    
                     // Update progress bar based on response
                     xhr.upload.onprogress = function(event) {
                         // Not applicable for JSON POST; skip or implement if necessary
                     };
-
+    
                     xhr.onreadystatechange = function() {
                         if (xhr.readyState === XMLHttpRequest.DONE) {
                             if (xhr.status === 200) {
                                 const response = JSON.parse(xhr.responseText);
                                 uploadedFile.innerHTML = `<a href="${response.watchUrl || response.fileUrl}" target="_blank">Access Uploaded File</a>`;
-
+    
                                 // Display File Metadata and Download Speed
                                 fileMetadata.innerHTML = `
                                     <h3>File Metadata:</h3>
@@ -357,7 +357,7 @@ app.get('/', (req, res) => {
                                     <p><strong>Download Speed:</strong> ${response.downloadSpeed.toFixed(2)} KB/s</p>
                                     <p><strong>Upload Time:</strong> ${new Date().toLocaleString()}</p>
                                 `;
-
+    
                                 status.innerText = 'URL upload completed successfully.';
                             } else {
                                 let errorMsg = 'URL upload failed. Please try again.';
@@ -374,16 +374,16 @@ app.get('/', (req, res) => {
                             progressBar.value = 0; // Reset progress bar
                         }
                     };
-
+    
                     // Handle errors
                     xhr.onerror = function() {
                         status.innerText = 'URL upload failed. Please try again.';
                         progressBar.value = 0;
                     };
-
+    
                     // Send the JSON payload
                     xhr.send(JSON.stringify({ fileUrl }));
-
+    
                     // Update status immediately
                     status.innerText = 'Processing URL upload...';
                 });
@@ -425,21 +425,12 @@ app.post('/upload', upload.single('file'), async (req, res) => {
                 { name: '360p', size: '640x360', bitrate: '800k' },
             ];
 
-            // Generate stream inputs for each quality level
-            const streams = qualityLevels.map(level => {
-                return {
-                    size: level.size,
-                    bitrate: level.bitrate,
-                };
-            });
-
             // Run FFmpeg to create HLS streams
             await new Promise((resolve, reject) => {
                 let ffmpegCommand = ffmpeg(req.file.path)
                     .addOptions([
                         '-profile:v baseline', // baseline profile (level 3.0) for H264 video codec
                         '-level 3.0',
-                        '-s', '640x360', // initial resolution
                         '-start_number', '0',
                         '-hls_time', '10', // 10 second segments
                         '-hls_list_size', '0',
@@ -557,70 +548,75 @@ app.post('/upload-url', async (req, res) => {
         let fileDownloadUrl = null;
 
         if (isMedia) {
-            // Convert the downloaded media file to HLS
-            const hlsOutputDir = path.join(uploadDir, path.parse(sanitizedFilename).name);
-            if (!fs.existsSync(hlsOutputDir)) {
-                fs.mkdirSync(hlsOutputDir, { recursive: true, mode: 0o755 });
-                console.log(`Created HLS output directory at ${hlsOutputDir}`);
-            }
+            try {
+                // Convert the downloaded media file to HLS
+                const hlsOutputDir = path.join(uploadDir, path.parse(sanitizedFilename).name);
+                if (!fs.existsSync(hlsOutputDir)) {
+                    fs.mkdirSync(hlsOutputDir, { recursive: true, mode: 0o755 });
+                    console.log(`Created HLS output directory at ${hlsOutputDir}`);
+                }
 
-            // Define HLS quality levels
-            const qualityLevels = [
-                { name: '720p', size: '1280x720', bitrate: '2800k' },
-                { name: '480p', size: '854x480', bitrate: '1400k' },
-                { name: '360p', size: '640x360', bitrate: '800k' },
-            ];
+                // Define HLS quality levels
+                const qualityLevels = [
+                    { name: '720p', size: '1280x720', bitrate: '2800k' },
+                    { name: '480p', size: '854x480', bitrate: '1400k' },
+                    { name: '360p', size: '640x360', bitrate: '800k' },
+                ];
 
-            // Run FFmpeg to create HLS streams
-            await new Promise((resolve, reject) => {
-                let ffmpegCommand = ffmpeg(filePath)
-                    .addOptions([
-                        '-profile:v baseline', // baseline profile (level 3.0) for H264 video codec
-                        '-level 3.0',
-                        '-start_number', '0',
-                        '-hls_time', '10', // 10 second segments
-                        '-hls_list_size', '0',
-                        '-f', 'hls',
-                    ]);
-
-                // Add outputs for each quality level
-                qualityLevels.forEach(level => {
-                    ffmpegCommand = ffmpegCommand
-                        .output(path.join(hlsOutputDir, `${level.name}.m3u8`))
-                        .videoCodec('libx264')
-                        .size(level.size)
-                        .videoBitrate(level.bitrate)
-                        .noAudio()
-                        .outputOptions([
-                            '-hls_segment_filename', path.join(hlsOutputDir, `${level.name}_%03d.ts`),
+                // Run FFmpeg to create HLS streams
+                await new Promise((resolve, reject) => {
+                    let ffmpegCommand = ffmpeg(filePath)
+                        .addOptions([
+                            '-profile:v baseline', // baseline profile (level 3.0) for H264 video codec
+                            '-level 3.0',
+                            '-start_number', '0',
+                            '-hls_time', '10', // 10 second segments
+                            '-hls_list_size', '0',
+                            '-f', 'hls',
                         ]);
+
+                    // Add outputs for each quality level
+                    qualityLevels.forEach(level => {
+                        ffmpegCommand = ffmpegCommand
+                            .output(path.join(hlsOutputDir, `${level.name}.m3u8`))
+                            .videoCodec('libx264')
+                            .size(level.size)
+                            .videoBitrate(level.bitrate)
+                            .noAudio()
+                            .outputOptions([
+                                '-hls_segment_filename', path.join(hlsOutputDir, `${level.name}_%03d.ts`),
+                            ]);
+                    });
+
+                    // Generate master playlist
+                    ffmpegCommand
+                        .on('error', (err) => {
+                            console.error('Error during HLS conversion:', err.message);
+                            reject(err);
+                        })
+                        .on('end', () => {
+                            console.log('HLS conversion completed successfully.');
+                            resolve();
+                        })
+                        .run();
                 });
 
-                // Generate master playlist
-                ffmpegCommand
-                    .on('error', (err) => {
-                        console.error('Error during HLS conversion:', err.message);
-                        reject(err);
-                    })
-                    .on('end', () => {
-                        console.log('HLS conversion completed successfully.');
-                        resolve();
-                    })
-                    .run();
-            });
+                // Create a master playlist that references all quality levels
+                const masterPlaylistPath = path.join(hlsOutputDir, 'master.m3u8');
+                let masterPlaylist = '#EXTM3U\n#EXT-X-VERSION:3\n';
 
-            // Create a master playlist that references all quality levels
-            const masterPlaylistPath = path.join(hlsOutputDir, 'master.m3u8');
-            let masterPlaylist = '#EXTM3U\n#EXT-X-VERSION:3\n';
+                qualityLevels.forEach(level => {
+                    masterPlaylist += `#EXT-X-STREAM-INF:BANDWIDTH=${parseInt(level.bitrate) * 1000},RESOLUTION=${level.size}\n${level.name}.m3u8\n`;
+                });
 
-            qualityLevels.forEach(level => {
-                masterPlaylist += `#EXT-X-STREAM-INF:BANDWIDTH=${parseInt(level.bitrate) * 1000},RESOLUTION=${level.size}\n${level.name}.m3u8\n`;
-            });
+                fs.writeFileSync(masterPlaylistPath, masterPlaylist);
+                console.log(`Master playlist created at ${masterPlaylistPath}`);
 
-            fs.writeFileSync(masterPlaylistPath, masterPlaylist);
-            console.log(`Master playlist created at ${masterPlaylistPath}`);
-
-            watchUrl = `${req.protocol}://${req.get('host')}/watch/${encodeURIComponent(sanitizedFilename)}`;
+                watchUrl = `${req.protocol}://${req.get('host')}/watch/${encodeURIComponent(sanitizedFilename)}`;
+            } catch (conversionError) {
+                console.error('Error during HLS conversion:', conversionError.message);
+                return res.status(500).json({ error: 'Error processing video for streaming via URL.' });
+            }
         } else {
             fileDownloadUrl = `${req.protocol}://${req.get('host')}/uploads/${encodeURIComponent(sanitizedFilename)}`;
         }
@@ -780,7 +776,7 @@ app.get('/watch/:filename', (req, res) => {
             </script>
         </body>
         </html>
-    `);
+    `); // Ensure this backtick closes the template literal
 });
 
 // Serve media files with support for HTTP Range Requests (streaming)
@@ -919,7 +915,7 @@ app.use((err, req, res, next) => {
 
 // === Start the Server ===
 
-const PORT = process.env.PORT || 8000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
